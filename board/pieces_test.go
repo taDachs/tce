@@ -1,6 +1,9 @@
 package board
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestGetMovementMatrixPawn(t *testing.T) {
 	board := GetStartBoard()
@@ -144,7 +147,7 @@ func TestPiece_GetMovementMatrixBishop(t *testing.T) {
 		}
 	}
 
-	board.PlacePieceOnBoard(3, 3, WHITE_BISHOP)
+	board.PlacePieceOnBoard(3, 3, BLACK_BISHOP)
 	movementMatrix = BLACK_BISHOP.GetMovementMatrix(&board, 4, 4)
 
 	for i := 0; i < 8; i ++ {
@@ -189,4 +192,45 @@ func TestPiece_GetMovementMatrixQueen(t *testing.T) {
 }
 
 func TestPiece_GetMovementMatrixKing(t *testing.T) {
+    board := GetStartBoard()
+    movementMatrix := BLACK_KING.GetMovementMatrix(&board, 4, 7)
+
+	for i, row := range movementMatrix.board {
+		for j := range row {
+		    if !movementMatrix.IsFieldEmpty(i, j) {
+				t.Error("movement matrix should be empty")
+		    }
+		}
+	}
+
+	board = CreateEmptyBitBoard()
+	board.PlacePieceOnBoard(4, 4, BLACK_KING)
+	movementMatrix = BLACK_KING.GetMovementMatrix(&board, 4, 4)
+
+	for i, row := range movementMatrix.board {
+		for j := range row {
+		    if (math.Abs(float64(4 - i)) - 1) < 0.001 && (math.Abs(float64(4 - j)) - 1) < 0.001 {
+		    	if movementMatrix.IsFieldEmpty(i, j) && !((i == 4) && (j == 4)) {
+		    		t.Error("invalid movement matrix, piece should be able to move here")
+				}
+			} else if !movementMatrix.IsFieldEmpty(i, j) {
+				t.Error("invalid movement matrix, piece should not be able to move here")
+			}
+		}
+	}
+}
+
+func TestPiece_IsColor(t *testing.T) {
+	if !BLACK_KING.IsBlack() {
+		t.Error("Black king incorrectly classified")
+	}
+	if BLACK_KING.IsWhite() {
+		t.Error("Black king incorrectly classified")
+	}
+	if !WHITE_KING.IsWhite() {
+		t.Error("White king incorrectly classified")
+	}
+	if WHITE_KING.IsBlack() {
+		t.Error("White king incorrectly classified")
+	}
 }

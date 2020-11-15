@@ -133,7 +133,43 @@ func (board *BitBoard) IsFieldAvailable(x, y int, white bool) bool {
 }
 
 func (board *BitBoard) PlacePieceOnBoard(x, y int, piece Piece) {
+	for i := range board.board[x][y] {
+		board.board[x][y][i] = false
+	}
 	board.board[x][y][piece] = true
+}
+
+func (board *BitBoard) GetPieceOnField(x, y int) Piece {
+	if board.IsFieldEmpty(x, y) {
+		return NO_PIECE
+	}
+
+	for i, piece := range board.board[x][y] {
+		if piece {
+			return Piece(i)
+		}
+	}
+
+	return NO_PIECE
+}
+
+func (board *BitBoard) findKing(white bool) (int, int) {
+    var piece Piece
+	if white {
+		piece = WHITE_KING
+	} else {
+		piece = BLACK_KING
+	}
+
+	for i, row := range board.board {
+		for j := range row {
+			if board.GetPieceOnField(i, j) == piece {
+				return i, j
+			}
+		}
+	}
+
+	return -1, -1
 }
 
 func GetStartBoard() BitBoard {
@@ -163,4 +199,37 @@ func GetStartBoard() BitBoard {
 	board.PlacePieceOnBoard(3, 7, BLACK_QUEEN)
 	board.PlacePieceOnBoard(4, 7, BLACK_KING)
 	return board
+}
+
+func (board *BitBoard) IsCheck(white bool) bool {
+	checkMatrix := CreateEmptyBitBoard()
+	x, y := board.findKing(white)
+
+	if x == -1 || y == -1 {
+		return false
+	}
+    for i := 0; i < 12; i++ {
+    	checkMatrix.board[x][y][i] = true
+	}
+
+	for i, row := range board.board {
+		for j := range row {
+			piece := board.GetPieceOnField(i, j)
+			if piece == NO_PIECE {
+				continue
+			}
+
+			if (white && piece.IsWhite()) || (!white && piece.IsBlack()) {
+				continue
+			}
+
+			movementMatrix := piece.GetMovementMatrix(board, i, j)
+			combinedMatrix := And(checkMatrix, movementMatrix)
+
+			if !combinedMatrix.IsFieldEmpty(x, y) {
+				return true
+			}
+		}
+	}
+	return false
 }

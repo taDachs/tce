@@ -15,7 +15,16 @@ const (
 	WHITE_BISHOP Piece = 9
 	WHITE_QUEEN Piece = 10
 	WHITE_KING Piece = 11
+	NO_PIECE Piece = 12
 )
+
+func (piece Piece) IsBlack() bool {
+	return piece < 6
+}
+
+func (piece Piece) IsWhite() bool {
+	return piece > 6 && piece != NO_PIECE
+}
 
 
 func (piece Piece) GetMovementMatrix(board *BitBoard, x, y int) BitBoard {
@@ -142,19 +151,19 @@ func getKnightMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 
 	if x + 2 < 8 {
 		if y + 1 < 8 {
-			matrix.board[x + 2][y + 1][piece] = board.IsFieldEmpty(x + 2, y + 1)
+			matrix.board[x + 2][y + 1][piece] = board.IsFieldAvailable(x + 2, y + 1, white)
 		}
 		if y - 1 >= 0 {
-			matrix.board[x + 2][y - 1][piece] = board.IsFieldEmpty(x + 2, y - 1)
+			matrix.board[x + 2][y - 1][piece] = board.IsFieldAvailable(x + 2, y - 1, white)
 		}
 	}
 
 	if x - 2 >= 0 {
 		if y + 1 < 8 {
-			matrix.board[x - 2][y + 1][piece] = board.IsFieldEmpty(x - 2, y + 1)
+			matrix.board[x - 2][y + 1][piece] = board.IsFieldAvailable(x - 2, y + 1, white)
 		}
 		if y - 1 >= 0 {
-			matrix.board[x - 2][y - 1][piece] = board.IsFieldEmpty(x - 2, y - 1)
+			matrix.board[x - 2][y - 1][piece] = board.IsFieldAvailable(x - 2, y - 1, white)
 		}
 	}
 
@@ -196,6 +205,9 @@ func getBishopMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 			break
 		}
 		if !board.IsFieldEmpty(i, yi) {
+			if board.IsFieldAvailable(i, yi, white) {
+				movementMatrix.PlacePieceOnBoard(i, yi, piece)
+			}
 			break
 		}
 		movementMatrix.PlacePieceOnBoard(i, yi, piece)
@@ -207,6 +219,9 @@ func getBishopMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 			break
 		}
 		if !board.IsFieldEmpty(i, yi) {
+			if board.IsFieldAvailable(i, yi, white) {
+				movementMatrix.PlacePieceOnBoard(i, yi, piece)
+			}
 			break
 		}
 		movementMatrix.PlacePieceOnBoard(i, yi, piece)
@@ -218,6 +233,9 @@ func getBishopMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 			break
 		}
 		if !board.IsFieldEmpty(i, yi) {
+			if board.IsFieldAvailable(i, yi, white) {
+				movementMatrix.PlacePieceOnBoard(i, yi, piece)
+			}
 			break
 		}
 		movementMatrix.PlacePieceOnBoard(i, yi, piece)
@@ -229,6 +247,9 @@ func getBishopMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 			break
 		}
 		if !board.IsFieldEmpty(i, yi) {
+			if board.IsFieldAvailable(i, yi, white) {
+				movementMatrix.PlacePieceOnBoard(i, yi, piece)
+			}
 			break
 		}
 		movementMatrix.PlacePieceOnBoard(i, yi, piece)
@@ -238,7 +259,27 @@ func getBishopMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 }
 
 func getKingMatrix(board *BitBoard, x, y int, white bool) BitBoard {
-	return CreateEmptyBitBoard()
+	var piece Piece
+	if white {
+		piece = WHITE_KING
+	} else {
+		piece = BLACK_KING
+	}
+	movementMatrix := CreateEmptyBitBoard()
+
+	for i := -1; i < 2; i++ {
+		for j := -1; j < 2; j++ {
+			xi := x + i
+			yi := y + j
+			if !((i == x) && (j == y)) && xi < 8 && xi >= 0 && yi < 8 && yi >= 0 {
+				if board.IsFieldAvailable(xi, yi, white) {
+					movementMatrix.PlacePieceOnBoard(xi, yi, piece)
+				}
+			}
+		}
+	}
+
+	return movementMatrix
 }
 
 func getQueenMatrix(board *BitBoard, x, y int, white bool) BitBoard {

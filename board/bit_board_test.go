@@ -137,3 +137,41 @@ func TestBitBoard_IsFieldAvailable(t *testing.T) {
 		t.Error("field should be available for white")
 	}
 }
+
+func TestBitBoard_GetPieceOnField(t *testing.T) {
+	board := CreateEmptyBitBoard()
+
+	board.PlacePieceOnBoard(0, 0, WHITE_PAWN)
+	if WHITE_PAWN != board.GetPieceOnField(0, 0) {
+		t.Error("got invalid piece")
+	}
+	board.PlacePieceOnBoard(1, 1, BLACK_QUEEN)
+	if BLACK_QUEEN != board.GetPieceOnField(1, 1) {
+		t.Error("got invalid piece")
+	}
+}
+
+func TestBitBoard_IsCheck(t *testing.T) {
+	board := GetStartBoard()
+
+	if board.IsCheck(true) || board.IsCheck(false) {
+		t.Error("check in starting pos is invalid")
+	}
+
+	board = CreateEmptyBitBoard()
+	board.PlacePieceOnBoard(4, 4, WHITE_KING)
+	board.PlacePieceOnBoard(0, 0, BLACK_QUEEN)
+
+	if !board.IsCheck(true) {
+		t.Error("white should be in check")
+	}
+	if board.IsCheck(false) {
+		t.Error("black should not be in check")
+	}
+
+	board.PlacePieceOnBoard(3, 3, WHITE_PAWN)
+
+	if board.IsCheck(true) {
+		t.Error("white should not be in check")
+	}
+}
