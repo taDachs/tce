@@ -26,36 +26,52 @@ func (piece Piece) IsWhite() bool {
 	return piece > 6 && piece != NO_PIECE
 }
 
-
-func (piece Piece) GetMovementMatrix(board *BitBoard, x, y int) BitBoard {
+func (piece Piece) GetMovementMatrix(board *BitBoard, x, y int, allowCheck bool) BitBoard {
+    movementMatrix := CreateEmptyBitBoard()
 	switch piece {
 	case BLACK_PAWN:
-		return getPawnMatrix(board, x, y, false)
+		movementMatrix = getPawnMatrix(board, x, y, false)
 	case WHITE_PAWN:
-		return getPawnMatrix(board, x, y, true)
+		movementMatrix = getPawnMatrix(board, x, y, true)
 	case BLACK_ROOK:
-		return getRookMatrix(board, x, y, false)
+		movementMatrix = getRookMatrix(board, x, y, false)
 	case WHITE_ROOK:
-		return getRookMatrix(board, x, y, true)
+		movementMatrix = getRookMatrix(board, x, y, true)
 	case BLACK_KNIGHT:
-		return getKnightMatrix(board, x, y, false)
+		movementMatrix = getKnightMatrix(board, x, y, false)
 	case WHITE_KNIGHT:
-		return getKnightMatrix(board, x, y, false)
+		movementMatrix = getKnightMatrix(board, x, y, false)
 	case BLACK_BISHOP:
-		return getBishopMatrix(board, x, y, false)
+		movementMatrix = getBishopMatrix(board, x, y, false)
 	case WHITE_BISHOP:
-		return getBishopMatrix(board, x, y, true)
+		movementMatrix = getBishopMatrix(board, x, y, true)
 	case BLACK_QUEEN:
-		return getQueenMatrix(board, x, y, false)
+		movementMatrix = getQueenMatrix(board, x, y, false)
 	case WHITE_QUEEN:
-		return getQueenMatrix(board, x, y, true)
+		movementMatrix = getQueenMatrix(board, x, y, true)
 	case BLACK_KING:
-		return getKingMatrix(board, x, y, false)
+		movementMatrix = getKingMatrix(board, x, y, false)
 	case WHITE_KING:
-		return getKingMatrix(board, x, y, true)
+		movementMatrix = getKingMatrix(board, x, y, true)
 	}
 
-	return CreateEmptyBitBoard()
+	if !allowCheck {
+		removeInvalidMoves(&movementMatrix, board, x, y, piece.IsWhite())
+	}
+
+	return movementMatrix
+}
+
+func removeInvalidMoves(matrix *BitBoard, board *BitBoard, x, y int, white bool) {
+	for i, row := range matrix.board {
+		for j := range row {
+			if !matrix.IsFieldEmpty(i, j) {
+				if board.doesMoveResultInCheck(x, y, i, j, white) {
+					matrix.PlacePieceOnBoard(i, j, NO_PIECE)
+				}
+			}
+		}
+	}
 }
 
 func getPawnMatrix(board *BitBoard, x, y int, white bool) BitBoard {
@@ -288,11 +304,11 @@ func getQueenMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 	var movementMatrixRook BitBoard
 	if white {
 		piece = WHITE_QUEEN
-		movementMatrixBishop = WHITE_BISHOP.GetMovementMatrix(board, x, y)
-		movementMatrixRook = WHITE_ROOK.GetMovementMatrix(board, x, y)
+		movementMatrixBishop = WHITE_BISHOP.GetMovementMatrix(board, x, y, true)
+		movementMatrixRook = WHITE_ROOK.GetMovementMatrix(board, x, y, true)
 	} else {
-		movementMatrixBishop = BLACK_BISHOP.GetMovementMatrix(board, x, y)
-		movementMatrixRook = BLACK_ROOK.GetMovementMatrix(board, x, y)
+		movementMatrixBishop = BLACK_BISHOP.GetMovementMatrix(board, x, y, true)
+		movementMatrixRook = BLACK_ROOK.GetMovementMatrix(board, x, y, true)
 		piece = BLACK_QUEEN
 	}
 

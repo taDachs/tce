@@ -136,6 +136,9 @@ func (board *BitBoard) PlacePieceOnBoard(x, y int, piece Piece) {
 	for i := range board.board[x][y] {
 		board.board[x][y][i] = false
 	}
+	if piece == NO_PIECE {
+		return
+	}
 	board.board[x][y][piece] = true
 }
 
@@ -223,7 +226,7 @@ func (board *BitBoard) IsCheck(white bool) bool {
 				continue
 			}
 
-			movementMatrix := piece.GetMovementMatrix(board, i, j)
+			movementMatrix := piece.GetMovementMatrix(board, i, j, true)
 			combinedMatrix := And(checkMatrix, movementMatrix)
 
 			if !combinedMatrix.IsFieldEmpty(x, y) {
@@ -232,4 +235,32 @@ func (board *BitBoard) IsCheck(white bool) bool {
 		}
 	}
 	return false
+}
+
+func (board *BitBoard) Copy() BitBoard {
+	copy := CreateEmptyBitBoard()
+
+	for i, row := range board.board {
+		for j := range row {
+			copy.PlacePieceOnBoard(i, j, board.GetPieceOnField(i, j))
+		}
+	}
+
+	return copy
+}
+
+func (board *BitBoard) MovePiece(x1, y1, x2, y2 int) BitBoard {
+    movedBoard := board.Copy()
+
+    piece := movedBoard.GetPieceOnField(x1, y1)
+    movedBoard.PlacePieceOnBoard(x1, y1, NO_PIECE)
+    movedBoard.PlacePieceOnBoard(x2, y2, piece)
+
+    return movedBoard
+}
+
+func (board *BitBoard) doesMoveResultInCheck(x1, y1, x2, y2 int, white bool) bool {
+	movedBoard := board.MovePiece(x1, y1, x2, y2)
+
+	return movedBoard.IsCheck(white)
 }

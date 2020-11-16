@@ -175,3 +175,29 @@ func TestBitBoard_IsCheck(t *testing.T) {
 		t.Error("white should not be in check")
 	}
 }
+
+func TestBitBoard_Copy(t *testing.T) {
+	board := GetStartBoard()
+	copiedBoard := board.Copy()
+
+	for i, row := range board.board {
+		for j := range row {
+			if board.GetPieceOnField(i, j) != copiedBoard.GetPieceOnField(i, j) {
+				t.Error("invalid copy")
+			}
+		}
+	}
+}
+
+func TestBitBoard_MovePiece(t *testing.T) {
+	board := GetStartBoard()
+	movedBoard := board.MovePiece(1, 1, 1, 3)
+
+	if board.IsFieldEmpty(1, 1) {
+		t.Error("old board should not have been changed")
+	}
+
+	if movedBoard.IsFieldEmpty(1, 3) {
+		t.Error("move hasn't been executed on the new board")
+	}
+}
