@@ -201,3 +201,19 @@ func TestBitBoard_MovePiece(t *testing.T) {
 		t.Error("move hasn't been executed on the new board")
 	}
 }
+
+func TestBitBoard_ToFEN(t *testing.T) {
+	fen := 	"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq 1"
+
+	board := GetStartBoard()
+
+	if board.ToFEN() != fen {
+		t.Errorf("starting board doesn't produce correct fen, produced fen:\n%s", board.ToFEN())
+	}
+
+	board = FromFEN(fen)
+	if board.ToFEN() != fen {
+		t.Errorf("fen doesn't produce correct board, produced fen:\n%s", board.ToFEN())
+	}
+
+}

@@ -62,6 +62,21 @@ func (piece Piece) GetMovementMatrix(board *BitBoard, x, y int, allowCheck bool)
 	return movementMatrix
 }
 
+func (piece Piece) GetNotation() string {
+	symbols := [13]string{"p", "r", "n", "b", "q", "k", "P", "R", "N", "B", "Q", "K", "-"}
+	return symbols[piece]
+}
+
+func GetPieceByNotation(s string) Piece {
+	for i := 0; i < 13; i++ {
+		if Piece(i).GetNotation() == s {
+			return Piece(i)
+		}
+	}
+
+	return NO_PIECE
+}
+
 func removeInvalidMoves(matrix *BitBoard, board *BitBoard, x, y int, white bool) {
 	for i, row := range matrix.board {
 		for j := range row {

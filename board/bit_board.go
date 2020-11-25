@@ -1,12 +1,18 @@
 package board
 
+import (
+	"strconv"
+	"strings"
+)
+
 type BitBoard struct {
 	board            [][][]bool
 	blackCastleLeft  bool
 	blackCastleRight bool
 	whiteCastleLeft  bool
 	whiteCastleRight bool
-	move             int
+	whitesTurn       bool
+	turn             int
 }
 
 func CreateEmptyBitBoard() BitBoard {
@@ -20,12 +26,115 @@ func CreateEmptyBitBoard() BitBoard {
 		board[i] = row
 	}
 
-	return BitBoard{board, true, true, true, true, 0}
+	return BitBoard{board, true, true, true, true, true, 0}
+}
+
+func GetStartBoard() BitBoard {
+	return FromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq 1")
+}
+
+// function currently doesn't return a correct FEN notation, current format:
+// [board (as usual)] [current side] [castle rights] [turn]
+func (board *BitBoard) ToFEN() string {
+	output := ""
+
+	for j := 7; j >= 0; j-- {
+		emptySquare := 0
+		for i := 0; i < 8; i++ {
+			if board.IsFieldEmpty(i, j) {
+				emptySquare++
+				continue
+			}
+
+			if emptySquare != 0 {
+				output += strconv.Itoa(emptySquare)
+				emptySquare = 0
+			}
+
+			piece := board.GetPieceOnField(i, j)
+			output += piece.GetNotation()
+		}
+
+		if emptySquare != 0 {
+			output += strconv.Itoa(emptySquare)
+		}
+
+		if j != 0 {
+			output += "/"
+		}
+	}
+
+	output += " "
+	if board.turn % 2 == 1 {
+		output += "w"
+	} else {
+		output += "b"
+	}
+
+	output += " "
+	if board.whiteCastleRight {
+		output += "K"
+	}
+	if board.whiteCastleLeft {
+		output += "Q"
+	}
+	if board.blackCastleRight {
+		output += "k"
+	}
+	if board.blackCastleLeft {
+		output += "q"
+	}
+
+	if !(board.whiteCastleRight || board.whiteCastleLeft || board.blackCastleRight || board.blackCastleLeft) {
+		output += "-"
+	}
+
+	output += " " + strconv.Itoa(board.turn)
+
+	return output
+}
+
+func FromFEN(fen string) BitBoard {
+    board := CreateEmptyBitBoard()
+
+    fenSplitBySpace := strings.Split(fen, " ")
+    boardString := fenSplitBySpace[0]
+    currentSide := fenSplitBySpace[1]
+    castleRights := fenSplitBySpace[2]
+    turn, _ := strconv.Atoi(fenSplitBySpace[3])
+
+    rows := strings.Split(boardString, "/")
+
+    for j := 7; j >= 0; j-- {
+    	row := rows[7 - j]
+    	for i, notation := range strings.Split(row, "") {
+			piece := GetPieceByNotation(notation)
+    		board.PlacePieceOnBoard(i, j, piece)
+		}
+	}
+
+	board.whitesTurn = currentSide == "w"
+
+	for _, c := range strings.Split(castleRights, "") {
+		switch c {
+		case "K":
+			board.whiteCastleRight = true
+		case "Q":
+			board.whiteCastleLeft = true
+		case "k":
+			board.blackCastleRight = true
+		case "q":
+			board.blackCastleLeft = true
+		}
+	}
+
+	board.turn = turn
+
+	return board
 }
 
 func And(a, b BitBoard) BitBoard {
 	result := CreateEmptyBitBoard()
-
 	for i, row := range result.board {
 		for j, field := range row {
 			for k := range field {
@@ -66,17 +175,11 @@ func Not(a BitBoard) BitBoard {
 }
 
 func (board *BitBoard) String() string {
-	symbols := [12]string{"p", "r", "n", "b", "q", "k", "P", "R", "N", "B", "Q", "K"}
 	output := ""
-	for _, row := range board.board {
-		for _, field := range row {
-			piece := "-"
-			for k, value := range field {
-				if value {
-					piece = symbols[k]
-				}
-			}
-			output += " " + piece
+	for i, row := range board.board {
+		for j := range row {
+			piece := board.GetPieceOnField(i, j)
+			output += " " + piece.GetNotation()
 		}
 		output += "\n"
 	}
@@ -125,8 +228,8 @@ func (board *BitBoard) IsFieldAvailable(x, y int, white bool) bool {
 	if board.IsFieldEmpty(x, y) {
 		return true
 	}
-    if white {
-    	return board.IsFieldBlack(x, y)
+	if white {
+		return board.IsFieldBlack(x, y)
 	} else {
 		return board.IsFieldWhite(x, y)
 	}
@@ -157,7 +260,7 @@ func (board *BitBoard) GetPieceOnField(x, y int) Piece {
 }
 
 func (board *BitBoard) findKing(white bool) (int, int) {
-    var piece Piece
+	var piece Piece
 	if white {
 		piece = WHITE_KING
 	} else {
@@ -175,35 +278,6 @@ func (board *BitBoard) findKing(white bool) (int, int) {
 	return -1, -1
 }
 
-func GetStartBoard() BitBoard {
-	board := CreateEmptyBitBoard()
-	for i := 0; i < 8; i++ {
-		board.PlacePieceOnBoard(i, 1, WHITE_PAWN)
-		board.PlacePieceOnBoard(i, 6, BLACK_PAWN)
-	}
-
-	board.PlacePieceOnBoard(0, 0, WHITE_ROOK)
-	board.PlacePieceOnBoard(7, 0, WHITE_ROOK)
-	board.PlacePieceOnBoard(0, 7, BLACK_ROOK)
-	board.PlacePieceOnBoard(7, 7, BLACK_ROOK)
-
-	board.PlacePieceOnBoard(1, 0, WHITE_KNIGHT)
-	board.PlacePieceOnBoard(6, 0, WHITE_KNIGHT)
-	board.PlacePieceOnBoard(1, 7, BLACK_KNIGHT)
-	board.PlacePieceOnBoard(6, 7, BLACK_KNIGHT)
-
-	board.PlacePieceOnBoard(2, 0, WHITE_BISHOP)
-	board.PlacePieceOnBoard(5, 0, WHITE_BISHOP)
-	board.PlacePieceOnBoard(2, 7, BLACK_BISHOP)
-	board.PlacePieceOnBoard(5, 7, BLACK_BISHOP)
-
-	board.PlacePieceOnBoard(3, 0, WHITE_QUEEN)
-	board.PlacePieceOnBoard(4, 0, WHITE_KING)
-	board.PlacePieceOnBoard(3, 7, BLACK_QUEEN)
-	board.PlacePieceOnBoard(4, 7, BLACK_KING)
-	return board
-}
-
 func (board *BitBoard) IsCheck(white bool) bool {
 	checkMatrix := CreateEmptyBitBoard()
 	x, y := board.findKing(white)
@@ -211,8 +285,8 @@ func (board *BitBoard) IsCheck(white bool) bool {
 	if x == -1 || y == -1 {
 		return false
 	}
-    for i := 0; i < 12; i++ {
-    	checkMatrix.board[x][y][i] = true
+	for i := 0; i < 12; i++ {
+		checkMatrix.board[x][y][i] = true
 	}
 
 	for i, row := range board.board {
@@ -250,13 +324,13 @@ func (board *BitBoard) Copy() BitBoard {
 }
 
 func (board *BitBoard) MovePiece(x1, y1, x2, y2 int) BitBoard {
-    movedBoard := board.Copy()
+	movedBoard := board.Copy()
 
-    piece := movedBoard.GetPieceOnField(x1, y1)
-    movedBoard.PlacePieceOnBoard(x1, y1, NO_PIECE)
-    movedBoard.PlacePieceOnBoard(x2, y2, piece)
+	piece := movedBoard.GetPieceOnField(x1, y1)
+	movedBoard.PlacePieceOnBoard(x1, y1, NO_PIECE)
+	movedBoard.PlacePieceOnBoard(x2, y2, piece)
 
-    return movedBoard
+	return movedBoard
 }
 
 func (board *BitBoard) doesMoveResultInCheck(x1, y1, x2, y2 int, white bool) bool {
