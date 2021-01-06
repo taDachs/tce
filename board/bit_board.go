@@ -13,6 +13,8 @@ type BitBoard struct {
 	whiteCastleRight bool
 	whitesTurn       bool
 	turn             int
+	halfmove		 int
+	enPassant		 []int
 }
 
 func CreateEmptyBitBoard() BitBoard {
@@ -26,18 +28,19 @@ func CreateEmptyBitBoard() BitBoard {
 		board[i] = row
 	}
 
-	return BitBoard{board, true, true, true, true, true, 0}
+	return BitBoard{board, true, true, true, true, true, 0, 0, []int{-1, -1}}
 }
 
 func GetStartBoard() BitBoard {
-	return FromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq 1")
+	return FromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
 }
 
-// function currently doesn't return a correct FEN notation, current format:
-// [board (as usual)] [current side] [castle rights] [turn]
+// TODO: halfmove clock and en passant field
+// [board (as usual)] [current side] [castle rights] [en passant field] [halfmove clock] [turn]
 func (board *BitBoard) ToFEN() string {
 	output := ""
 
+	// board
 	for j := 7; j >= 0; j-- {
 		emptySquare := 0
 		for i := 0; i < 8; i++ {
@@ -65,6 +68,8 @@ func (board *BitBoard) ToFEN() string {
 	}
 
 	output += " "
+
+	// active color
 	if board.turn % 2 == 1 {
 		output += "w"
 	} else {
@@ -72,6 +77,8 @@ func (board *BitBoard) ToFEN() string {
 	}
 
 	output += " "
+
+	// castle rights
 	if board.whiteCastleRight {
 		output += "K"
 	}
@@ -89,6 +96,17 @@ func (board *BitBoard) ToFEN() string {
 		output += "-"
 	}
 
+	// en passant
+	if board.enPassant[0] == -1 || board.enPassant[1] == -1 {
+		output += " -"
+	} else {
+		output += " " + RowColToAlgebra(board.enPassant[0], board.enPassant[1])
+	}
+
+	// halfmove clock
+	output += " " + strconv.Itoa(board.halfmove)
+
+	// turn
 	output += " " + strconv.Itoa(board.turn)
 
 	return output
@@ -101,7 +119,9 @@ func FromFEN(fen string) BitBoard {
     boardString := fenSplitBySpace[0]
     currentSide := fenSplitBySpace[1]
     castleRights := fenSplitBySpace[2]
-    turn, _ := strconv.Atoi(fenSplitBySpace[3])
+    enPassant := fenSplitBySpace[3]
+	halfmove, _ := strconv.Atoi(fenSplitBySpace[4])
+	turn, _ := strconv.Atoi(fenSplitBySpace[5])
 
     rows := strings.Split(boardString, "/")
 
@@ -128,6 +148,13 @@ func FromFEN(fen string) BitBoard {
 		}
 	}
 
+	if enPassant == "-" {
+		board.enPassant = []int{-1, -1}
+	} else {
+		board.enPassant = AlgebraToRowCol(enPassant)
+	}
+
+	board.halfmove = halfmove
 	board.turn = turn
 
 	return board
@@ -323,18 +350,12 @@ func (board *BitBoard) Copy() BitBoard {
 	return copy
 }
 
-func (board *BitBoard) MovePiece(x1, y1, x2, y2 int) BitBoard {
+func (board *BitBoard) doesMoveResultInCheck(x1, y1, x2, y2 int, white bool) bool {
 	movedBoard := board.Copy()
 
 	piece := movedBoard.GetPieceOnField(x1, y1)
 	movedBoard.PlacePieceOnBoard(x1, y1, NO_PIECE)
 	movedBoard.PlacePieceOnBoard(x2, y2, piece)
-
-	return movedBoard
-}
-
-func (board *BitBoard) doesMoveResultInCheck(x1, y1, x2, y2 int, white bool) bool {
-	movedBoard := board.MovePiece(x1, y1, x2, y2)
 
 	return movedBoard.IsCheck(white)
 }
