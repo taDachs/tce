@@ -23,7 +23,11 @@ func (piece Piece) IsBlack() bool {
 }
 
 func (piece Piece) IsWhite() bool {
-	return piece > 6 && piece != NO_PIECE
+	return piece >= 6 && piece != NO_PIECE
+}
+
+func (piece Piece) IsNone() bool {
+	return piece == NO_PIECE
 }
 
 func (piece Piece) GetMovementMatrix(board *BitBoard, x, y int, allowCheck bool) BitBoard {
@@ -80,7 +84,7 @@ func GetPieceByNotation(s string) Piece {
 func removeInvalidMoves(matrix *BitBoard, board *BitBoard, x, y int, white bool) {
 	for i, row := range matrix.board {
 		for j := range row {
-			if !matrix.IsFieldEmpty(i, j) {
+			if !matrix.isFieldEmpty(i, j) {
 				if board.doesMoveResultInCheck(x, y, i, j, white) {
 					matrix.PlacePieceOnBoard(i, j, NO_PIECE)
 				}
@@ -100,22 +104,30 @@ func getPawnMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 		piece = BLACK_PAWN
 	}
 	matrix := CreateEmptyBitBoard()
-	if board.IsFieldAvailable(x, y + direction, white) {
+	if board.isFieldAvailable(x, y + direction, white) {
 		matrix.board[x][y + direction][piece] = true
-		matrix.board[x][y + 2 * direction][piece] = board.IsFieldAvailable(x, y + 2 * direction, white)
+		if (white && (y == 1)) || (!white && (y == 6)) {
+			matrix.board[x][y + 2 * direction][piece] = board.isFieldAvailable(x, y + 2 * direction, white)
+		}
 	}
 
 	if x > 0 {
-		if board.IsFieldAvailable(x - 1, y + direction, white) && !board.IsFieldEmpty(x - 1, y + direction) {
+		if board.isFieldAvailable(x - 1, y + direction, white) && !board.isFieldEmpty(x - 1, y + direction) ||
+			(((white && y > 3) || (!white && y < 4)) && ((board.GetEnPassant()[0] == x - 1) &&
+				(board.GetEnPassant()[1] == y + direction))) {
 			matrix.PlacePieceOnBoard(x - 1, y + direction, piece)
 		}
 	}
 	if x < 7 {
-		if board.IsFieldAvailable(x + 1, y + direction, white) && !board.IsFieldEmpty(x + 1, y + direction) {
+		if board.isFieldAvailable(x + 1, y + direction, white) && !board.isFieldEmpty(x + 1, y + direction) ||
+			(((white && y > 3) || (!white && y < 4)) && ((board.GetEnPassant()[0] == x + 1) &&
+				(board.GetEnPassant()[1] == y + direction))) {
 			matrix.PlacePieceOnBoard(x + 1, y + direction, piece)
 		}
 	}
-	return matrix
+
+
+return matrix
 }
 
 func getRookMatrix(board *BitBoard, x, y int, white bool) BitBoard {
@@ -128,8 +140,8 @@ func getRookMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 	matrix := CreateEmptyBitBoard()
 
 	for i := x + 1; i < 8; i++ {
-		if !board.IsFieldEmpty(i, y) {
-			if board.IsFieldAvailable(i, y, white) {
+		if !board.isFieldEmpty(i, y) {
+			if board.isFieldAvailable(i, y, white) {
 				matrix.PlacePieceOnBoard(i, y, piece)
 			}
 			break
@@ -138,8 +150,8 @@ func getRookMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 	}
 
 	for i := x - 1; i >= 0; i-- {
-		if !board.IsFieldEmpty(i, y) {
-			if board.IsFieldAvailable(i, y, white) {
+		if !board.isFieldEmpty(i, y) {
+			if board.isFieldAvailable(i, y, white) {
 				matrix.PlacePieceOnBoard(i, y, piece)
 			}
 			break
@@ -148,8 +160,8 @@ func getRookMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 	}
 
 	for j := y + 1; j < 8; j++ {
-		if !board.IsFieldEmpty(x, j) {
-			if board.IsFieldAvailable(x, j, white) {
+		if !board.isFieldEmpty(x, j) {
+			if board.isFieldAvailable(x, j, white) {
 				matrix.PlacePieceOnBoard(x, j, piece)
 			}
 			break
@@ -158,8 +170,8 @@ func getRookMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 	}
 
 	for j := y - 1; j >= 0; j-- {
-		if !board.IsFieldEmpty(x, j) {
-			if board.IsFieldAvailable(x, j, white) {
+		if !board.isFieldEmpty(x, j) {
+			if board.isFieldAvailable(x, j, white) {
 				matrix.PlacePieceOnBoard(x, j, piece)
 			}
 			break
@@ -182,37 +194,37 @@ func getKnightMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 
 	if x + 2 < 8 {
 		if y + 1 < 8 {
-			matrix.board[x + 2][y + 1][piece] = board.IsFieldAvailable(x + 2, y + 1, white)
+			matrix.board[x + 2][y + 1][piece] = board.isFieldAvailable(x + 2, y + 1, white)
 		}
 		if y - 1 >= 0 {
-			matrix.board[x + 2][y - 1][piece] = board.IsFieldAvailable(x + 2, y - 1, white)
+			matrix.board[x + 2][y - 1][piece] = board.isFieldAvailable(x + 2, y - 1, white)
 		}
 	}
 
 	if x - 2 >= 0 {
 		if y + 1 < 8 {
-			matrix.board[x - 2][y + 1][piece] = board.IsFieldAvailable(x - 2, y + 1, white)
+			matrix.board[x - 2][y + 1][piece] = board.isFieldAvailable(x - 2, y + 1, white)
 		}
 		if y - 1 >= 0 {
-			matrix.board[x - 2][y - 1][piece] = board.IsFieldAvailable(x - 2, y - 1, white)
+			matrix.board[x - 2][y - 1][piece] = board.isFieldAvailable(x - 2, y - 1, white)
 		}
 	}
 
 	if y + 2 < 8 {
 		if x + 1 < 8 {
-			matrix.board[x + 1][y + 2][piece] = board.IsFieldEmpty(x + 1, y + 2)
+			matrix.board[x + 1][y + 2][piece] = board.isFieldEmpty(x + 1, y + 2)
 		}
 		if x - 1 >= 0 {
-			matrix.board[x - 1][y + 2][piece] = board.IsFieldEmpty(x - 1, y + 2)
+			matrix.board[x - 1][y + 2][piece] = board.isFieldEmpty(x - 1, y + 2)
 		}
 	}
 
 	if y - 2 >= 0 {
 		if x + 1 < 8 {
-			matrix.board[x + 1][y - 2][piece] = board.IsFieldEmpty(x + 1, y - 2)
+			matrix.board[x + 1][y - 2][piece] = board.isFieldEmpty(x + 1, y - 2)
 		}
 		if x - 1 >= 0 {
-			matrix.board[x - 1][y - 2][piece] = board.IsFieldEmpty(x - 1, y - 2)
+			matrix.board[x - 1][y - 2][piece] = board.isFieldEmpty(x - 1, y - 2)
 		}
 	}
 
@@ -235,8 +247,8 @@ func getBishopMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 		if  yi >= 8 || yi < 0 {
 			break
 		}
-		if !board.IsFieldEmpty(i, yi) {
-			if board.IsFieldAvailable(i, yi, white) {
+		if !board.isFieldEmpty(i, yi) {
+			if board.isFieldAvailable(i, yi, white) {
 				movementMatrix.PlacePieceOnBoard(i, yi, piece)
 			}
 			break
@@ -249,8 +261,8 @@ func getBishopMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 		if  yi >= 8 || yi < 0 {
 			break
 		}
-		if !board.IsFieldEmpty(i, yi) {
-			if board.IsFieldAvailable(i, yi, white) {
+		if !board.isFieldEmpty(i, yi) {
+			if board.isFieldAvailable(i, yi, white) {
 				movementMatrix.PlacePieceOnBoard(i, yi, piece)
 			}
 			break
@@ -263,8 +275,8 @@ func getBishopMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 		if  yi >= 8 || yi < 0 {
 			break
 		}
-		if !board.IsFieldEmpty(i, yi) {
-			if board.IsFieldAvailable(i, yi, white) {
+		if !board.isFieldEmpty(i, yi) {
+			if board.isFieldAvailable(i, yi, white) {
 				movementMatrix.PlacePieceOnBoard(i, yi, piece)
 			}
 			break
@@ -277,8 +289,8 @@ func getBishopMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 		if  yi >= 8 || yi < 0 {
 			break
 		}
-		if !board.IsFieldEmpty(i, yi) {
-			if board.IsFieldAvailable(i, yi, white) {
+		if !board.isFieldEmpty(i, yi) {
+			if board.isFieldAvailable(i, yi, white) {
 				movementMatrix.PlacePieceOnBoard(i, yi, piece)
 			}
 			break
@@ -303,7 +315,7 @@ func getKingMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 			xi := x + i
 			yi := y + j
 			if !((i == x) && (j == y)) && xi < 8 && xi >= 0 && yi < 8 && yi >= 0 {
-				if board.IsFieldAvailable(xi, yi, white) {
+				if board.isFieldAvailable(xi, yi, white) {
 					movementMatrix.PlacePieceOnBoard(xi, yi, piece)
 				}
 			}
@@ -330,7 +342,7 @@ func getQueenMatrix(board *BitBoard, x, y int, white bool) BitBoard {
 	movementMatrix := CreateEmptyBitBoard()
 	for i, row := range movementMatrix.board {
 		for j := range row {
-		    if !movementMatrixRook.IsFieldEmpty(i, j) || !movementMatrixBishop.IsFieldEmpty(i, j) {
+		    if !movementMatrixRook.isFieldEmpty(i, j) || !movementMatrixBishop.isFieldEmpty(i, j) {
 		    	movementMatrix.PlacePieceOnBoard(i, j, piece)
 			}
 		}

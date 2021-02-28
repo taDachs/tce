@@ -7,14 +7,26 @@ import (
 
 type BitBoard struct {
 	board            [][][]bool
-	blackCastleLeft  bool
-	blackCastleRight bool
-	whiteCastleLeft  bool
-	whiteCastleRight bool
+	blackCastleQueen bool
+	blackCastleKing  bool
+	whiteCastleQueen bool
+	whiteCastleKing  bool
 	whitesTurn       bool
 	turn             int
-	halfmove		 int
-	enPassant		 []int
+	halfmove         int
+	enPassant        []int
+}
+
+func (board *BitBoard) GetTurn() int {
+	return board.turn
+}
+
+func (board *BitBoard) SetTurn(turn int) {
+	board.turn = turn
+}
+
+func (board *BitBoard) SetWhitesTurn(whitesTurn bool) {
+	board.whitesTurn = whitesTurn
 }
 
 func CreateEmptyBitBoard() BitBoard {
@@ -44,7 +56,7 @@ func (board *BitBoard) ToFEN() string {
 	for j := 7; j >= 0; j-- {
 		emptySquare := 0
 		for i := 0; i < 8; i++ {
-			if board.IsFieldEmpty(i, j) {
+			if board.isFieldEmpty(i, j) {
 				emptySquare++
 				continue
 			}
@@ -79,20 +91,20 @@ func (board *BitBoard) ToFEN() string {
 	output += " "
 
 	// castle rights
-	if board.whiteCastleRight {
+	if board.whiteCastleKing {
 		output += "K"
 	}
-	if board.whiteCastleLeft {
+	if board.whiteCastleQueen {
 		output += "Q"
 	}
-	if board.blackCastleRight {
+	if board.blackCastleKing {
 		output += "k"
 	}
-	if board.blackCastleLeft {
+	if board.blackCastleQueen {
 		output += "q"
 	}
 
-	if !(board.whiteCastleRight || board.whiteCastleLeft || board.blackCastleRight || board.blackCastleLeft) {
+	if !(board.whiteCastleKing || board.whiteCastleQueen || board.blackCastleKing || board.blackCastleQueen) {
 		output += "-"
 	}
 
@@ -138,13 +150,13 @@ func FromFEN(fen string) BitBoard {
 	for _, c := range strings.Split(castleRights, "") {
 		switch c {
 		case "K":
-			board.whiteCastleRight = true
+			board.whiteCastleKing = true
 		case "Q":
-			board.whiteCastleLeft = true
+			board.whiteCastleQueen = true
 		case "k":
-			board.blackCastleRight = true
+			board.blackCastleKing = true
 		case "q":
-			board.blackCastleLeft = true
+			board.blackCastleQueen = true
 		}
 	}
 
@@ -201,6 +213,31 @@ func Not(a BitBoard) BitBoard {
 	return result
 }
 
+func (board BitBoard) Equal(other BitBoard) bool {
+	for i, row := range board.board {
+		for j, field := range row {
+			for k, value := range field {
+				if value != other.board[i][j][k] {
+					return false
+				}
+			}
+		}
+	}
+
+	if board.blackCastleQueen != other.blackCastleQueen || board.blackCastleKing != other.blackCastleKing ||
+		board.whiteCastleQueen != other.whiteCastleQueen || board.whiteCastleKing != other.whiteCastleKing ||
+		board.whitesTurn != other.whitesTurn || board.turn != other.turn || board.halfmove != other.halfmove ||
+		board.enPassant[0] != other.enPassant[0] || board.enPassant[1] != other.enPassant[1] {
+		return false
+	}
+
+	return true
+}
+
+func (board BitBoard) IsWhitesTurn() bool {
+	return board.whitesTurn
+}
+
 func (board *BitBoard) String() string {
 	output := ""
 	for i, row := range board.board {
@@ -214,7 +251,7 @@ func (board *BitBoard) String() string {
 	return output
 }
 
-func (board *BitBoard) IsFieldEmpty(x, y int) bool {
+func (board *BitBoard) isFieldEmpty(x, y int) bool {
 	for _, value := range board.board[x][y] {
 		if value {
 			return false
@@ -223,8 +260,8 @@ func (board *BitBoard) IsFieldEmpty(x, y int) bool {
 	return true
 }
 
-func (board *BitBoard) IsFieldBlack(x, y int) bool {
-	if board.IsFieldEmpty(x, y) {
+func (board *BitBoard) isFieldBlack(x, y int) bool {
+	if board.isFieldEmpty(x, y) {
 		return false
 	}
 
@@ -237,8 +274,8 @@ func (board *BitBoard) IsFieldBlack(x, y int) bool {
 	return false
 }
 
-func (board *BitBoard) IsFieldWhite(x, y int) bool {
-	if board.IsFieldEmpty(x, y) {
+func (board *BitBoard) isFieldWhite(x, y int) bool {
+	if board.isFieldEmpty(x, y) {
 		return false
 	}
 
@@ -251,14 +288,14 @@ func (board *BitBoard) IsFieldWhite(x, y int) bool {
 	return false
 }
 
-func (board *BitBoard) IsFieldAvailable(x, y int, white bool) bool {
-	if board.IsFieldEmpty(x, y) {
+func (board *BitBoard) isFieldAvailable(x, y int, white bool) bool {
+	if board.isFieldEmpty(x, y) {
 		return true
 	}
 	if white {
-		return board.IsFieldBlack(x, y)
+		return board.isFieldBlack(x, y)
 	} else {
-		return board.IsFieldWhite(x, y)
+		return board.isFieldWhite(x, y)
 	}
 }
 
@@ -273,7 +310,7 @@ func (board *BitBoard) PlacePieceOnBoard(x, y int, piece Piece) {
 }
 
 func (board *BitBoard) GetPieceOnField(x, y int) Piece {
-	if board.IsFieldEmpty(x, y) {
+	if board.isFieldEmpty(x, y) {
 		return NO_PIECE
 	}
 
@@ -330,7 +367,7 @@ func (board *BitBoard) IsCheck(white bool) bool {
 			movementMatrix := piece.GetMovementMatrix(board, i, j, true)
 			combinedMatrix := And(checkMatrix, movementMatrix)
 
-			if !combinedMatrix.IsFieldEmpty(x, y) {
+			if !combinedMatrix.isFieldEmpty(x, y) {
 				return true
 			}
 		}
@@ -358,4 +395,97 @@ func (board *BitBoard) doesMoveResultInCheck(x1, y1, x2, y2 int, white bool) boo
 	movedBoard.PlacePieceOnBoard(x2, y2, piece)
 
 	return movedBoard.IsCheck(white)
+}
+
+func (board *BitBoard) IsCheckMate(white bool) bool {
+	if !board.IsCheck(white) {
+		return false
+	}
+	for i, row := range board.board {
+		for j := range row {
+			if (white && board.isFieldWhite(i, j)) || (!white && board.isFieldBlack(i, j)) {
+				piece := board.GetPieceOnField(i, j)
+				movementMatrix := piece.GetMovementMatrix(board, i, j, false)
+				for k, rowMovement := range movementMatrix.board {
+					for l := range rowMovement {
+						if !movementMatrix.isFieldEmpty(k, l) {
+							return false
+						}
+					}
+				}
+			}
+		}
+	}
+	return true
+}
+
+func (board *BitBoard) IsMoveValid(x1, y1, x2, y2 int) bool {
+	piece := board.GetPieceOnField(x1, y1)
+
+	if piece.IsNone() || (piece.IsWhite() != board.whitesTurn) || (piece.IsBlack() != !board.whitesTurn) {
+		return false
+	}
+
+	movementMatrix := piece.GetMovementMatrix(board, x1, y1, false)
+	if movementMatrix.isFieldEmpty(x2, y2) {
+		return false
+	}
+
+	return true
+}
+
+func (board *BitBoard) GetCastleRightsQueenSideAfterPieceMove(x, y int) bool {
+	if (!board.whiteCastleQueen && board.whitesTurn) || (!board.blackCastleQueen && !board.whitesTurn) {
+	    return false
+	}
+	piece := board.GetPieceOnField(x, y)
+	if (piece == WHITE_KING) && board.whitesTurn {
+	    return false
+	}
+
+	if (piece == BLACK_KING) && !board.whitesTurn {
+		return false
+	}
+
+	if (piece == WHITE_ROOK) && board.whitesTurn && ((x == 0) && (y == 0)) {
+		return false
+	}
+
+	if (piece == BLACK_ROOK) && !board.whitesTurn && ((x == 0) && (y == 7)) {
+		return false
+	}
+
+	return true
+}
+
+func (board *BitBoard) GetCastleRightsKingSideAfterPieceMove(x, y int) bool {
+	if (!board.whiteCastleKing && board.whitesTurn) || (!board.blackCastleKing && !board.whitesTurn) {
+		return false
+	}
+	piece := board.GetPieceOnField(x, y)
+	if (piece == WHITE_KING) && board.whitesTurn {
+		return false
+	}
+
+	if (piece == BLACK_KING) && !board.whitesTurn {
+		return false
+	}
+
+	if (piece == WHITE_ROOK) && board.whitesTurn && ((x == 7) && (y == 0)) {
+		return false
+	}
+
+	if (piece == BLACK_ROOK) && !board.whitesTurn && ((x == 7) && (y == 7)) {
+		return false
+	}
+
+	return true
+}
+
+func (board *BitBoard) SetEnPassant(x, y int) {
+	board.enPassant = []int{x, y}
+}
+
+func (board *BitBoard) GetEnPassant() []int {
+	return board.enPassant
 }

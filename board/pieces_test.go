@@ -38,7 +38,7 @@ func TestGetMovementMatrixPawn(t *testing.T) {
 	movementMatrix = BLACK_PAWN.GetMovementMatrix(&board, 0, 6, false)
 	for i, row := range movementMatrix.board {
 		for j := range row {
-			if !movementMatrix.IsFieldEmpty(i, j) {
+			if !movementMatrix.isFieldEmpty(i, j) {
 				t.Error("movement matrix should be empty")
 			}
 		}
@@ -48,10 +48,17 @@ func TestGetMovementMatrixPawn(t *testing.T) {
 	movementMatrix = BLACK_PAWN.GetMovementMatrix(&board, 0, 6, false)
 	for i, row := range movementMatrix.board {
 		for j := range row {
-			if (i == 1 && j == 5) && movementMatrix.IsFieldEmpty(i, j) {
+			if (i == 1 && j == 5) && movementMatrix.isFieldEmpty(i, j) {
 				t.Error("invalid movement matrix, pawn should be able to move and capture")
 			}
 		}
+	}
+
+	board = CreateEmptyBitBoard()
+	board.PlacePieceOnBoard(4, 4, WHITE_PAWN)
+	movementMatrix = WHITE_PAWN.GetMovementMatrix(&board, 4, 4, true)
+	if !movementMatrix.isFieldEmpty(4, 6) {
+		t.Error("pawn not allowed to move 2 squares")
 	}
 }
 
@@ -62,7 +69,7 @@ func TestPiece_GetMovementMatrixRook(t *testing.T) {
 
 	for i, row := range movementMatrix.board {
 		for j := range row {
-			if !movementMatrix.IsFieldEmpty(i, j) {
+			if !movementMatrix.isFieldEmpty(i, j) {
 				t.Error("movement matrix wrong, rook is blocked in every direction")
 			}
 		}
@@ -101,7 +108,7 @@ func TestPiece_GetMovementMatrixKnight(t *testing.T) {
 
 	for i, row := range movementMatrix.board {
 		for j := range row {
-			if !(movementMatrix.IsFieldEmpty(i, j) == !((j == 5) && ((i == 0) || (i == 2)))) {
+			if !(movementMatrix.isFieldEmpty(i, j) == !((j == 5) && ((i == 0) || (i == 2)))) {
 				t.Error("movement matrix for knight wrong")
 			}
 		}
@@ -111,10 +118,10 @@ func TestPiece_GetMovementMatrixKnight(t *testing.T) {
 	board.PlacePieceOnBoard(4, 4, BLACK_KNIGHT)
 
 	movementMatrix = BLACK_KNIGHT.GetMovementMatrix(&board, 4, 4, false)
-	if movementMatrix.IsFieldEmpty(6, 3) || movementMatrix.IsFieldEmpty(6, 5) ||
-		movementMatrix.IsFieldEmpty(2, 3) || movementMatrix.IsFieldEmpty(2, 5) ||
-		movementMatrix.IsFieldEmpty(3, 6) || movementMatrix.IsFieldEmpty(5, 6) ||
-		movementMatrix.IsFieldEmpty(3, 2) || movementMatrix.IsFieldEmpty(5, 2) {
+	if movementMatrix.isFieldEmpty(6, 3) || movementMatrix.isFieldEmpty(6, 5) ||
+		movementMatrix.isFieldEmpty(2, 3) || movementMatrix.isFieldEmpty(2, 5) ||
+		movementMatrix.isFieldEmpty(3, 6) || movementMatrix.isFieldEmpty(5, 6) ||
+		movementMatrix.isFieldEmpty(3, 2) || movementMatrix.isFieldEmpty(5, 2) {
 		t.Error("Movement matrix wrong for knight in mid")
 	}
 }
@@ -125,7 +132,7 @@ func TestPiece_GetMovementMatrixBishop(t *testing.T) {
 	movementMatrix := BLACK_BISHOP.GetMovementMatrix(&board, 2, 7, false)
 	for i, row := range movementMatrix.board {
 		for j := range row {
-			if !movementMatrix.IsFieldEmpty(i, j) {
+			if !movementMatrix.isFieldEmpty(i, j) {
 				t.Error("movement matrix for bishop in start pos wrong")
 			}
 		}
@@ -138,10 +145,10 @@ func TestPiece_GetMovementMatrixBishop(t *testing.T) {
 	for i, row := range movementMatrix.board {
 		for j := range row {
 		    if ((i == j) || (j == (8 - i))) && (i != 4) && (j != 4) {
-		    	if movementMatrix.IsFieldEmpty(i, j) {
+		    	if movementMatrix.isFieldEmpty(i, j) {
 					t.Error("movement matrix invalid, piece should be able to move here")
 				}
-			} else if !movementMatrix.IsFieldEmpty(i, j) {
+			} else if !movementMatrix.isFieldEmpty(i, j) {
 				t.Error("movement matrix invalid, piece should not be able to move here")
 			}
 		}
@@ -152,10 +159,10 @@ func TestPiece_GetMovementMatrixBishop(t *testing.T) {
 
 	for i := 0; i < 8; i ++ {
 		if i < 5 {
-			if !movementMatrix.IsFieldEmpty(i, i) {
+			if !movementMatrix.isFieldEmpty(i, i) {
 				t.Error("movement matrix invalid, blocked piece should not be able to move here")
 			}
-		} else if movementMatrix.IsFieldEmpty(i, i) {
+		} else if movementMatrix.isFieldEmpty(i, i) {
 			t.Error("movement matrix invalid, blocked piece should be able to move here")
 		}
 	}
@@ -166,7 +173,7 @@ func TestPiece_GetMovementMatrixQueen(t *testing.T) {
 	movementMatrix := BLACK_QUEEN.GetMovementMatrix(&board, 3, 7, false)
 	for i, row := range movementMatrix.board {
 		for j := range row {
-			if !movementMatrix.IsFieldEmpty(i, j) {
+			if !movementMatrix.isFieldEmpty(i, j) {
 				t.Error("movement matrix for queen in start pos wrong")
 			}
 		}
@@ -181,10 +188,10 @@ func TestPiece_GetMovementMatrixQueen(t *testing.T) {
 			rookField := (i == 4) || (j == 4)
 			bishopField := ((i == j) || (j == (8 - i))) && (i != 4) && (j != 4)
 			if (rookField || bishopField) && !((i == 4) && (j == 4)) {
-				if movementMatrix.IsFieldEmpty(i, j) {
+				if movementMatrix.isFieldEmpty(i, j) {
 					t.Error("invalid movement matrix, piece should be able to move here")
 				}
-			} else if !movementMatrix.IsFieldEmpty(i, j) {
+			} else if !movementMatrix.isFieldEmpty(i, j) {
 				t.Error("invalid movement matrix, piece should not be able to move here")
 			}
 		}
@@ -197,7 +204,7 @@ func TestPiece_GetMovementMatrixKing(t *testing.T) {
 
 	for i, row := range movementMatrix.board {
 		for j := range row {
-		    if !movementMatrix.IsFieldEmpty(i, j) {
+		    if !movementMatrix.isFieldEmpty(i, j) {
 				t.Error("movement matrix should be empty")
 		    }
 		}
@@ -209,15 +216,23 @@ func TestPiece_GetMovementMatrixKing(t *testing.T) {
 
 	for i, row := range movementMatrix.board {
 		for j := range row {
-		    if (math.Abs(float64(4 - i)) - 1) < 0.001 && (math.Abs(float64(4 - j)) - 1) < 0.001 {
-		    	if movementMatrix.IsFieldEmpty(i, j) && !((i == 4) && (j == 4)) {
+		    if int(math.Abs(float64(4 - i)) - 1) <= 0 && int(math.Abs(float64(4 - j)) - 1) <= 0 { // go needs floats for abs?
+		    	if movementMatrix.isFieldEmpty(i, j) && !((i == 4) && (j == 4)) {
 		    		t.Error("invalid movement matrix, piece should be able to move here")
 				}
-			} else if !movementMatrix.IsFieldEmpty(i, j) {
+			} else if !movementMatrix.isFieldEmpty(i, j) {
 				t.Error("invalid movement matrix, piece should not be able to move here")
 			}
 		}
 	}
+
+	board.PlacePieceOnBoard(4, 2, WHITE_KING)
+	movementMatrix = WHITE_KING.GetMovementMatrix(&board, 4, 2, false)
+	if !(movementMatrix.isFieldEmpty(3, 3) && movementMatrix.isFieldEmpty(4, 3) &&
+		movementMatrix.isFieldEmpty(5, 3)) {
+		t.Error("Kings have to stay one square apart")
+	}
+
 }
 
 func TestPiece_IsColor(t *testing.T) {
@@ -242,11 +257,11 @@ func TestPiece_MoveInCheck(t *testing.T) {
 
 	movementMatrix := WHITE_KING.GetMovementMatrix(&board, 4, 4, false)
 
-	if !movementMatrix.IsFieldEmpty(3, 3) || !movementMatrix.IsFieldEmpty(5, 5) {
+	if !movementMatrix.isFieldEmpty(3, 3) || !movementMatrix.isFieldEmpty(5, 5) {
 		t.Error("king should not be able to move into check")
 	}
 
-	if movementMatrix.IsFieldEmpty(3, 4) || movementMatrix.IsFieldEmpty(3, 5) {
+	if movementMatrix.isFieldEmpty(3, 4) || movementMatrix.isFieldEmpty(3, 5) {
 		t.Error("king should be able to move here")
 	}
 
@@ -256,10 +271,54 @@ func TestPiece_MoveInCheck(t *testing.T) {
 
 	for i, row := range movementMatrix.board {
 		for j := range row {
-			if !movementMatrix.IsFieldEmpty(i, j) {
+			if !movementMatrix.isFieldEmpty(i, j) {
 				t.Error("bishop should not be able to move because king is in check")
 			}
 		}
 	}
+}
 
+func TestPiece_MovePawnCheckKing(t *testing.T) {
+	board := CreateEmptyBitBoard()
+	board.PlacePieceOnBoard(4, 4, BLACK_QUEEN)
+	board.PlacePieceOnBoard(4, 0, WHITE_KING)
+	board.PlacePieceOnBoard(4, 1, WHITE_PAWN)
+	board.PlacePieceOnBoard(3, 2, BLACK_PAWN)
+
+
+	movementMatrix := WHITE_PAWN.GetMovementMatrix(&board, 4, 1, false)
+	if !movementMatrix.isFieldEmpty(3, 2) {
+		t.Error("this move would result in self check")
+	}
+}
+
+func TestPiece_MovePawnEnPassant(t *testing.T) {
+	board := CreateEmptyBitBoard()
+	board.PlacePieceOnBoard(4, 4, WHITE_PAWN)
+	board.PlacePieceOnBoard(3, 4, BLACK_PAWN)
+	board.SetEnPassant(3, 5)
+
+
+	movementMatrix := WHITE_PAWN.GetMovementMatrix(&board, 4, 4, false)
+	if movementMatrix.isFieldEmpty(3, 5) {
+		t.Error("Error, this move should be legal due to en passant")
+	}
+
+	board = CreateEmptyBitBoard()
+	board.PlacePieceOnBoard(4, 3, WHITE_PAWN)
+	board.PlacePieceOnBoard(3, 3, BLACK_PAWN)
+	board.SetEnPassant(4, 2)
+
+
+	movementMatrix = BLACK_PAWN.GetMovementMatrix(&board, 3, 3, false)
+	if movementMatrix.isFieldEmpty(4, 2) {
+		t.Error("Error, this move should be legal due to en passant")
+	}
+
+	board.PlacePieceOnBoard(3, 1, WHITE_PAWN)
+	movementMatrix = WHITE_PAWN.GetMovementMatrix(&board, 3, 1, false)
+	if !movementMatrix.isFieldEmpty(4, 2) {
+		t.Error("Error, this move should not be legal due to en passant")
+
+	}
 }

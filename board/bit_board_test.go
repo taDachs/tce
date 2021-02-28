@@ -24,8 +24,8 @@ func TestCreateEmptyBitBoard(t *testing.T) {
 		}
 	}
 
-	if !bitBoard.blackCastleLeft || !bitBoard.blackCastleRight ||
-		!bitBoard.whiteCastleLeft || !bitBoard.whiteCastleRight {
+	if !bitBoard.blackCastleQueen || !bitBoard.blackCastleKing ||
+		!bitBoard.whiteCastleQueen || !bitBoard.whiteCastleKing {
 		t.Error("castle rights are wrong")
 	}
 }
@@ -70,7 +70,7 @@ func TestBoardOr(t *testing.T) {
 
 	orBoard := Or(board1, board2)
 	if !orBoard.board[0][0][0] || !orBoard.board[0][0][1] || orBoard.board[0][0][2] {
-		t.Error("AND failed")
+		t.Error("OR failed")
 	}
 }
 
@@ -88,7 +88,7 @@ func TestBitBoard_IsFieldEmpty(t *testing.T) {
 
 	for i, row := range board.board {
 		for j := range row {
-			if !board.IsFieldEmpty(i, j) {
+			if !board.isFieldEmpty(i, j) {
 				t.Error("not all fields are empty")
 			}
 		}
@@ -96,7 +96,7 @@ func TestBitBoard_IsFieldEmpty(t *testing.T) {
 
 	board.PlacePieceOnBoard(0, 0, BLACK_PAWN)
 
-	if board.IsFieldEmpty(0, 0) {
+	if board.isFieldEmpty(0, 0) {
 		t.Error("Field shouldn't be empty")
 	}
 }
@@ -106,14 +106,14 @@ func TestBitBoard_IsFieldBlack(t *testing.T) {
 	board.PlacePieceOnBoard(0, 0, WHITE_ROOK)
 	board.PlacePieceOnBoard(1, 1, BLACK_QUEEN)
 
-	if board.IsFieldBlack(0, 0) || !board.IsFieldWhite(0, 0) {
+	if board.isFieldBlack(0, 0) || !board.isFieldWhite(0, 0) {
 		t.Error("white field classified as black")
 	}
-	if !board.IsFieldBlack(1, 1) || board.IsFieldWhite(1, 1) {
+	if !board.isFieldBlack(1, 1) || board.isFieldWhite(1, 1) {
 		t.Error("black field classified as white")
 	}
 
-	if board.IsFieldBlack(2, 2) || board.IsFieldWhite(2, 2) {
+	if board.isFieldBlack(2, 2) || board.isFieldWhite(2, 2) {
 		t.Error("Empty field got classified as either black or white")
 	}
 }
@@ -123,17 +123,17 @@ func TestBitBoard_IsFieldAvailable(t *testing.T) {
 	board.PlacePieceOnBoard(0, 0, WHITE_PAWN)
 	board.PlacePieceOnBoard(1, 1, BLACK_PAWN)
 
-	if board.IsFieldAvailable(0, 0, true) {
+	if board.isFieldAvailable(0, 0, true) {
 	    t.Error("field should not be available for white")
 	}
-	if !board.IsFieldAvailable(0, 0, false) {
+	if !board.isFieldAvailable(0, 0, false) {
 		t.Error("field should be available for black")
 	}
 
-	if board.IsFieldAvailable(1, 1, false) {
+	if board.isFieldAvailable(1, 1, false) {
 		t.Error("field should not be available for black")
 	}
-	if !board.IsFieldAvailable(1, 1, true) {
+	if !board.isFieldAvailable(1, 1, true) {
 		t.Error("field should be available for white")
 	}
 }
@@ -194,18 +194,18 @@ func TestBitBoard_MovePiece(t *testing.T) {
 	board := GetStartBoard()
 	movedBoard := board.MovePiece(1, 1, 1, 3)
 
-	if board.IsFieldEmpty(1, 1) {
+	if board.isFieldEmpty(1, 1) {
 		t.Error("old board should not have been changed")
 	}
 
-	if movedBoard.IsFieldEmpty(1, 3) {
+	if movedBoard.isFieldEmpty(1, 3) {
 		t.Error("move hasn't been executed on the new board")
 	}
 }
 */
 
 func TestBitBoard_ToFEN(t *testing.T) {
-	fen := 	"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+	fen := "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 	board := GetStartBoard()
 
@@ -217,5 +217,77 @@ func TestBitBoard_ToFEN(t *testing.T) {
 	if board.ToFEN() != fen {
 		t.Errorf("fen doesn't produce correct board, produced fen:\n%s", board.ToFEN())
 	}
+}
+
+func TestBitBoard_Equals(t *testing.T) {
+	b1 := GetStartBoard()
+	b2 := GetStartBoard()
+
+	if !b1.Equal(b2) {
+		t.Error("boards should be equal")
+	}
+
+	b2 = CreateEmptyBitBoard()
+
+	if b1.Equal(b2) {
+		t.Error("boards should not be equal")
+	}
+}
+
+func TestBitBoard_IsCheckMate(t *testing.T) {
+	board := CreateEmptyBitBoard()
+	board.PlacePieceOnBoard(0, 0, WHITE_KING)
+	board.PlacePieceOnBoard(1, 1, BLACK_QUEEN)
+	board.PlacePieceOnBoard(2, 2, BLACK_BISHOP)
+
+	if !board.IsCheckMate(true) {
+		t.Error("Position is check mate")
+	}
+
+	if board.IsCheckMate(false) {
+		t.Error("for black position is no check mate")
+	}
+}
+
+func TestBitBoard_IsMoveValid(t *testing.T) {
+	board := GetStartBoard()
+
+	if !board.IsMoveValid(5, 1, 5, 3) {
+		t.Error("pawn move should be valid")
+	}
+
+	if !board.IsMoveValid(5, 1, 5, 2) {
+		t.Error("pawn move should be valid")
+	}
+
+	if board.IsMoveValid(0, 3, 5, 3) {
+		t.Error("invalid move, no piece on this square")
+	}
+
+	if board.IsMoveValid(0, 6, 4, 4) {
+		t.Error("invalid move, cant move black piece as white")
+	}
+
+	board = CreateEmptyBitBoard()
+	board.PlacePieceOnBoard(4, 4, BLACK_QUEEN)
+	board.PlacePieceOnBoard(4, 0, WHITE_KING)
+	board.PlacePieceOnBoard(4, 1, WHITE_ROOK)
+
+	if board.IsMoveValid(4, 1, 0, 1) {
+		t.Error("error, moving rook would result in self check")
+	}
+
+	if !board.IsMoveValid(4, 1, 4, 4) {
+		t.Error("error, capturing the queen is valid")
+	}
+
+	board = CreateEmptyBitBoard()
+	board.PlacePieceOnBoard(0, 0, WHITE_QUEEN)
+	board.PlacePieceOnBoard(1, 7, BLACK_KING)
+
+	if !board.IsMoveValid(0, 0, 1, 0) {
+		t.Error("error, checking black should be valid")
+	}
+
 
 }
